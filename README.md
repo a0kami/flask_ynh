@@ -1,11 +1,13 @@
 Flask template for YunoHost
 ===========================
 
+[![Integration level](https://dash.yunohost.org/integration/flask.svg)](https://dash.yunohost.org/appci/app/flask) ![](https://ci-apps.yunohost.org/ci/badges/flask.status.svg) ![](https://ci-apps.yunohost.org/ci/badges/flask.maintain.svg)  
+
 This is a Flask template for YunoHost.
 
 It will setup a basic Hello World app in `/var/www/<appname>`.
 
-You can then use it to : 
+You can then use it to :
 
 - start developing an app
 - or install an existing app by replacing the appropriate files
