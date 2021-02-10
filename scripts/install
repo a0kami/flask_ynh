@@ -4,8 +4,8 @@
 set -eu
 
 # Source YunoHost helpers
-source /usr/share/yunohost/helpers
 source _future.sh
+source /usr/share/yunohost/helpers
 
 # Retrieve manifest arguments
 app=$YNH_APP_INSTANCE_NAME

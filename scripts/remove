@@ -2,8 +2,8 @@
 set -u
 
 # Source YunoHost helpers
-source /usr/share/yunohost/helpers
 source _future.sh
+source /usr/share/yunohost/helpers
 
 # Retrieve app settings
 readonly app=$YNH_APP_INSTANCE_NAME
