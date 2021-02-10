@@ -41,10 +41,6 @@ function main()
 
 function check_assertions()
 {
-    # Webpath is available
-    ynh_webpath_available --domain=domain --path_url=path || \
-        ynh_die "Path is already taken"
-
     # Database is available
     if [[ ! $(ynh_package_is_installed --package="postgresql") && \
             $(ynh_psql_database_exists --database=$db_name) ]]
@@ -55,42 +51,46 @@ function check_assertions()
     # Names are valid
     if [[ $app_system_name =~ [^a-z0-9] ]]
     then
-        ynh_die "Invalid app_system_name (Should be lowercase alphanum)"
+        ynh_die --message="Invalid app_system_name (Should be lowercase alphanum)"
     fi
     if [[ $app_display_name =~ [^a-zA-Z0-9\ ] ]]
     then
-        ynh_die "Invalid app_display_name (Should be alphanum, space allowed)"
+        ynh_die --message="Invalid app_display_name (Should be alphanum, space allowed)"
     fi
 }
 
 function configure_app()
 {
-    ynh_webpath_register $app $domain $path
-    ynh_app_setting_set "$app" display_name "$app_display_name"
-    ynh_app_setting_set "$app" system_name "$app_system_name"
-    ynh_app_setting_set "$app" is_public "$is_public"
-    ynh_app_setting_set "$app" db_type "$db_type"
+    ynh_webpath_register --app=$app --domain=$domain --path_url=$path
+    ynh_app_setting_set --app="$app" --key="display_name" --value="$app_display_name"
+    ynh_app_setting_set --app="$app" --key="system_name" --value="$app_system_name"
+    ynh_app_setting_set --app="$app" --key="is_public" --value="$is_public"
+    ynh_app_setting_set --app="$app" --key="db_type" --value="$db_type"
 }
 
 function install_dependencies()
 {
-    if [ "$db_type" = 'postgresql' ]
-    then
-        db_dependencies="postgresql postgresql-server-dev-all"
+    # Deal with DB dependencies with a switch
+    case $db_type in
+        "postgresql")
+            db_dependencies="postgresql postgresql-server-dev-all"
+            ;;
+        "sqlite")
+            db_dependencies="sqlite3"
+            ;;
+        *)
+            ynh_die --message="Unknown database type"
+            ;;
+    esac
 
-    elif [ "$db_type" = 'sqlite' ]
-    then
-        db_dependencies="sqlite3"
-
-    else
-        ynh_die "Unknown database type"
-    fi
-
-    ynh_install_app_dependencies virtualenv \
-                                 python3-dev \
-                                 python3-virtualenv \
-                                 python3-pip \
-                                 $db_dependencies
+    # List to add as app dependencies
+    dependencies = virtualenv \
+                   python3-dev \
+                   python3-virtualenv \
+                   python3-pip \
+                   $db_dependencies
+    ynh_add_app_dependencies --package=dependencies
+    # Calls ynh_install_app_dependencies directly
 }
 
 function init_venv()
