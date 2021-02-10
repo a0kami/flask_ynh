@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Exit on command errors and treat unset variables as an error
-set -eu
-
 # Source YunoHost helpers
 source _future.sh
 source /usr/share/yunohost/helpers
+
+# Exit on command errors and treat unset variables as an error
+ynh_abort_if_errors
 
 # Retrieve manifest arguments
 app=$YNH_APP_INSTANCE_NAME
@@ -17,6 +17,13 @@ readonly is_public=$YNH_APP_ARG_IS_PUBLIC
 readonly db_type=$YNH_APP_ARG_DB_TYPE
 
 readonly final_path=/var/www/$app_system_name
+
+# TODO
+# Define a clean failsafe in case install script fails
+function ynh_clean_setup ()
+{
+    ynh_print_warn --message="Clean failsafe 'ynh_clean_setup' not implemented"
+}
 
 function main()
 {
