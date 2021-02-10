@@ -13,6 +13,7 @@ domain=$YNH_APP_ARG_DOMAIN
 path=$YNH_APP_ARG_PATH
 readonly app_system_name=$YNH_APP_ARG_SYSTEM_NAME
 readonly app_display_name=$YNH_APP_ARG_DISPLAY_NAME
+readonly db_name=$(ynh_sanitize_dbid --db_name=$app_system_name)
 readonly is_public=$YNH_APP_ARG_IS_PUBLIC
 readonly db_type=$YNH_APP_ARG_DB_TYPE
 
@@ -40,12 +41,26 @@ function main()
 
 function check_assertions()
 {
-    if su postgres -c "psql -lqt | cut -d \| -f 1 | grep -qw test"
+    # Webpath is available
+    ynh_webpath_available --domain=domain --path_url=path || \
+        ynh_die "Path is already taken"
+
+    # Database is available
+    if [[ ! $(ynh_package_is_installed --package="postgresql") && \
+            $(ynh_psql_database_exists --database=$db_name) ]]
     then
-        ynh_die "Database already exists :<"
+        ynh_die --message="Database already exists :<"
     fi
-    # app_system_name is made of [a-z0-9]
-    # app_display_name is made of [a-zA-Z0-9 ]
+
+    # Names are valid
+    if [[ $app_system_name =~ [^a-z0-9] ]]
+    then
+        ynh_die "Invalid app_system_name (Should be lowercase alphanum)"
+    fi
+    if [[ $app_display_name =~ [^a-zA-Z0-9\ ] ]]
+    then
+        ynh_die "Invalid app_display_name (Should be alphanum, space allowed)"
+    fi
 }
 
 function configure_app()
@@ -75,7 +90,7 @@ function install_dependencies()
                                  python3-dev \
                                  python3-virtualenv \
                                  python3-pip \
-                                 $db_dependencies                             
+                                 $db_dependencies
 }
 
 function init_venv()
@@ -83,9 +98,9 @@ function init_venv()
     mkdir -p $final_path
     pushd $final_path
     virtualenv -p python3 venv
-    set +o nounset 
+    set +o nounset
     source venv/bin/activate
-    set -o nounset 
+    set -o nounset
     pip install Flask
     pip install Flask-Script
     pip install Flask-SQLAlchemy
@@ -98,7 +113,7 @@ function init_venv()
 function init_db()
 {
     # Generate random password
-    readonly db_name=$app_system_name
+    readonly db_name=$(ynh_sanitize_dbid $app_system_name)
     readonly db_user=$app_system_name
     readonly db_pwd=$(ynh_string_random)
 
@@ -110,7 +125,7 @@ function init_db()
 
     elif [ "$db_type" = 'sqlite' ]
     then
-        # Initialize sqlite database  
+        # Initialize sqlite database
         # TODO: password
         ynh_sqlite_create_db $db_name
         readonly db_host=""
@@ -146,9 +161,9 @@ function configure_flask_app()
 
     # Init db
     pushd $final_path
-    set +o nounset 
+    set +o nounset
     source venv/bin/activate
-    set -o nounset 
+    set -o nounset
     ./manage.py nuke
     ./manage.py lorem
     popd
