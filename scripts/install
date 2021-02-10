@@ -27,7 +27,7 @@ function main()
     init_db
     configure_flask_app
     configure_service
-    configure_nginx_and_ssowat
+    configure_nginx
     start_app
 }
 
@@ -167,7 +167,7 @@ function configure_service()
     yunohost service add $app_system_name -l /var/log/$app_system_name/access.log
 }
 
-function configure_nginx_and_ssowat()
+function configure_nginx()
 {
     # Nginx conf
     ynh_replace_string "__YNH_APP_NAME__"    "$app_system_name" ../conf/nginx.conf
@@ -175,9 +175,8 @@ function configure_nginx_and_ssowat()
     ynh_replace_string "__YNH_APP_FSPATH__"  "$final_path"      ../conf/nginx.conf
     cp ../conf/nginx.conf /etc/nginx/conf.d/$domain.d/$app_system_name.conf
 
-    # Reload Nginx and regenerate SSOwat conf
+    # Reload Nginx
     service nginx reload
-    yunohost app ssowatconf
 }
 
 function start_app()
