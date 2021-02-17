@@ -3,34 +3,44 @@
 # SQLITE HELPERS
 #=================================================
 
-#TODO: Open and execute
-
 # Create a sqlite database file
 #
-# usage: ynh_sqlite_create_db db
-# | arg: db - the database name to create
-# TODO: password protection
-ynh_sqlite_create_db() {
-    sqlite3 <<< ".save /var/www/$1/$1.sqlite3"
+# usage: ynh_sqlite_setup_db --db_name=db
+# | arg: -n, --db_name - the database name to create
+ynh_sqlite_setup_db() {
+    local legacy_args=n
+    local -A args_array=( [n]=db_name= )
+    # Manage arguments with getopts
+    ynh_handle_getopts_args "$@"
+
+    sqlite3 <<< ".save /var/www/${db_name}/${db_name}.sqlite3"
 }
 
-# Drop a database
+# Remove a database
 #
-# usage: ynh_sqlite_drop_db db
-# | arg: db - the database name to drop
-ynh_sqlite_drop_db() {
-    shred /var/www/$1/$1.sqlite3
+# usage: ynh_sqlite_remove_db --db_name=db
+# | arg: -n, --db_name - the database name to drop
+ynh_sqlite_remove_db() {
+    local legacy_args=n
+    local -A args_array=( [n]=db_name= )
+    # Manage arguments with getopts
+    ynh_handle_getopts_args "$@"
+
+    shred -u "/var/www/${db_name}/${db_name}.sqlite3"
 }
 
 # Dump a database
 #
-# example: ynh_sqlite_dump_db 'roundcube' > ./dump.sql
+# example: ynh_sqlite_dump_db --db_name='roundcube' > ./dump.sql
 #
-# usage: ynh_sqltie_dump_db db
-# | arg: db - the database name to dump
+# usage: ynh_sqlite_dump_db --db_name=db
+# | arg: -n, --db_name - the database name to dump
 # | ret: the sqlitedump output
 ynh_sqlite_dump_db() {
-    sqlite3 /var/www/$1.sqlite3 <<< ".dump"
-}
+    local legacy_args=n
+    local -A args_array=( [n]=db_name= )
+    # Manage arguments with getopts
+    ynh_handle_getopts_args "$@"
 
-#TODO: Test
+    sqlite3 "/var/www/${db_name}/${db_name}.sqlite3" <<< ".dump"
+}
