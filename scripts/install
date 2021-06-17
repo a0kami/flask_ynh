@@ -128,7 +128,7 @@ function init_db()
     elif [ "$db_type" = 'sqlite' ]
     then
         # Initialize sqlite database
-        ynh_sqlite_setup_db $db_name
+        #ynh_sqlite_setup_db $db_name
         readonly db_host=""
 
     else
