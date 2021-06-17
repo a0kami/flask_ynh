@@ -160,13 +160,13 @@ function configure_flask_app()
     cp ../conf/gunicorn.py $final_path/
 
     # Init db
-    pushd $final_path
-    set +o nounset
-    source venv/bin/activate
-    set -o nounset
-    ./manage.py nuke
-    ./manage.py lorem
-    popd
+    #pushd $final_path
+    #set +o nounset
+    #source venv/bin/activate
+    #set -o nounset
+    #./manage.py nuke
+    #./manage.py lorem
+    #popd
 
     # Set permissions
     ynh_system_user_create --username=$app_system_name
