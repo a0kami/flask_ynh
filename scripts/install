@@ -64,7 +64,6 @@ function configure_app()
     ynh_webpath_register --app=$app --domain=$domain --path_url=$path
     ynh_app_setting_set --app="$app" --key="display_name" --value="$app_display_name"
     ynh_app_setting_set --app="$app" --key="system_name" --value="$app_system_name"
-    ynh_app_setting_set --app="$app" --key="is_public" --value="$is_public"
     ynh_app_setting_set --app="$app" --key="db_type" --value="$db_type"
 }
 
@@ -91,6 +90,8 @@ function install_dependencies()
                    $db_dependencies
     ynh_add_app_dependencies --package=dependencies
     # Calls ynh_install_app_dependencies directly
+
+    ynh_script_progression --message="System dependencies installed." --weight=1
 }
 
 function init_venv()
@@ -102,40 +103,39 @@ function init_venv()
     source venv/bin/activate
     set -o nounset
     pip install Flask
-    pip install Flask-Script
     pip install Flask-SQLAlchemy
     #psycopg2 driver for sqlalchemy postgresql dialect (either that or pg8000)
     if [ "$db_type" = 'postgresql' ]; then pip install psycopg2; fi
     pip install gunicorn
     popd
+
+    ynh_script_progression --message="Local python dependencies installed." --weight=1
 }
 
 function init_db()
 {
     # Generate random password
-    readonly db_name=$(ynh_sanitize_dbid $app_system_name)
     readonly db_user=$app_system_name
     readonly db_pwd=$(ynh_string_random)
 
     if [ "$db_type" = 'postgresql' ]
     then
+        ynh_psql_test_if_first_run
         # Initialize postgresql database
-        ynh_psql_create_db $db_name $db_user $db_pwd
+        ynh_psql_setup_db --db_user=$db_user --db_name=$db_name --db_pwd=$db_pwd
         readonly db_host=$db_user:$db_pwd@localhost #:$db_port
 
     elif [ "$db_type" = 'sqlite' ]
     then
         # Initialize sqlite database
-        # TODO: password
-        ynh_sqlite_create_db $db_name
+        ynh_sqlite_setup_db $db_name
         readonly db_host=""
 
     else
-        ynh_die "Unknown database type"
+        ynh_die --message="Unknown database type"
     fi
 
-    # Store database password for upgrade
-    ynh_app_setting_set "$app" db_password "$db_pwd"
+    ynh_script_progression --message="Database initialised." --weight=1
 }
 
 function configure_flask_app()
@@ -169,8 +169,16 @@ function configure_flask_app()
     popd
 
     # Set permissions
-    useradd $app_system_name -d $final_path || echo "User already exists"
+    ynh_system_user_create --username=$app_system_name
     chown -R $app_system_name:www-data $final_path
+
+    # Set the visitors permission for public app
+    if [[ $is_public ]] ##  -eq "true" ]]
+    then
+      ynh_permission_update --permission="main" --add="visitors"
+    fi
+
+    ynh_script_progression --message="Application configured." --weight=1
 }
 
 function configure_service()
@@ -184,9 +192,11 @@ function configure_service()
     ynh_replace_string "__YNH_APP_PATH__" "$final_path"      ../conf/app.service
     cp ../conf/app.service /etc/systemd/system/$app_system_name.service
 
-    systemctl daemon-reload
-    systemctl enable $app_system_name
+    systemctl --quiet daemon-reload
+    systemctl --quiet enable $app_system_name
     yunohost service add $app_system_name -l /var/log/$app_system_name/access.log
+
+    ynh_script_progression --message="Service configured." --weight=1
 }
 
 function configure_nginx()
@@ -203,7 +213,8 @@ function configure_nginx()
 
 function start_app()
 {
-    systemctl start $app_system_name
+    yunohost service start $app_system_name
+    ynh_script_progression --message="Starting application.." --weight=1
 }
 
 main
